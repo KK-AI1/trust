@@ -1,0 +1,308 @@
+// Prisma schema for lounge-system (TRUST POS 風のラウンジ運営管理システム)
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// 認証・店舗
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  OWNER
+  MANAGER
+  STAFF
+}
+
+model Store {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users            User[]
+  tables           TableSeat[]
+  casts            Cast[]
+  menuCategories   MenuCategory[]
+  menuItems        MenuItem[]
+  visits           Visit[]
+  dailyReports     DailyReport[]
+  cashRegisterLogs CashRegisterLog[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  storeId      String
+  store        Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name         String
+  username     String   @unique
+  passwordHash String
+  role         UserRole @default(STAFF)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  dailyReports     DailyReport[]
+  cashRegisterLogs CashRegisterLog[]
+
+  @@index([storeId])
+}
+
+// ---------------------------------------------------------------------------
+// 卓・メニュー
+// ---------------------------------------------------------------------------
+
+enum TableStatus {
+  VACANT // 空席
+  OCCUPIED // 利用中
+}
+
+model TableSeat {
+  id        String      @id @default(cuid())
+  storeId   String
+  store     Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name      String // 卓1, 卓2...
+  capacity  Int         @default(4)
+  status    TableStatus @default(VACANT)
+  sortOrder Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  visits Visit[]
+
+  @@unique([storeId, name])
+  @@index([storeId])
+}
+
+model MenuCategory {
+  id        String     @id @default(cuid())
+  storeId   String
+  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name      String // ドリンク1000, シャンパン, フード...
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  menuItems MenuItem[]
+
+  @@unique([storeId, name])
+  @@index([storeId])
+}
+
+model MenuItem {
+  id           String       @id @default(cuid())
+  storeId      String
+  store        Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  categoryId   String
+  category     MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  name         String
+  price        Int // 円
+  isBottle     Boolean      @default(false) // ボトル折半対象か
+  backAmount   Int          @default(0) // キャストへのバック額(ボトル等)
+  isAvailable  Boolean      @default(true)
+  sortOrder    Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  orderItems   OrderItem[]
+
+  @@index([storeId, categoryId])
+}
+
+// ---------------------------------------------------------------------------
+// キャスト・勤怠・給与設定
+// ---------------------------------------------------------------------------
+
+enum CastEmploymentType {
+  REGULAR // 通常
+  TRIAL // 体験入店
+  DISPATCH // 派遣
+}
+
+enum WageType {
+  HOURLY // 時給
+  DAILY // 日給
+  MONTHLY // 月給
+}
+
+model Cast {
+  id             String             @id @default(cuid())
+  storeId        String
+  store          Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name           String
+  employmentType CastEmploymentType @default(REGULAR)
+  isActive       Boolean            @default(true)
+
+  // 給与設定
+  wageType     WageType @default(HOURLY)
+  wageAmount   Int      @default(0) // 時給/日給/月給の単価
+  welfareRate  Float    @default(0) // 厚生費率 (例 0.05 = 5%)
+
+  // バック率(指名種別ごと)
+  honshimeiBackAmount Int @default(0) // 本指名バック
+  jonaiBackAmount     Int @default(0) // 場内指名バック
+  dohanBackAmount     Int @default(0) // 同伴指名バック
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  timeCards       TimeCard[]
+  nominations     Nomination[]
+  orderItems      OrderItem[]
+  bottleSplits    BottleSplit[]
+
+  @@index([storeId])
+}
+
+model TimeCard {
+  id          String    @id @default(cuid())
+  castId      String
+  cast        Cast      @relation(fields: [castId], references: [id], onDelete: Cascade)
+  workDate    DateTime  @db.Date
+  clockInAt   DateTime
+  clockOutAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([castId, workDate])
+}
+
+// ---------------------------------------------------------------------------
+// 来店(卓利用)・指名・オーダー・延長・ボトル折半
+// ---------------------------------------------------------------------------
+
+enum VisitStatus {
+  OPEN // 利用中
+  CLOSED // 会計済み
+}
+
+model Visit {
+  id           String      @id @default(cuid())
+  storeId      String
+  store        Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  tableId      String
+  table        TableSeat   @relation(fields: [tableId], references: [id], onDelete: Restrict)
+  guestCount   Int         @default(1)
+  status       VisitStatus @default(OPEN)
+  checkInAt    DateTime    @default(now())
+  checkOutAt   DateTime?
+  baseMinutes  Int         @default(60) // コース基本時間(分)
+  totalAmount  Int         @default(0) // 会計確定時の合計金額
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  nominations    Nomination[]
+  orderItems     OrderItem[]
+  extensionLogs  ExtensionLog[]
+
+  @@index([storeId, status])
+  @@index([tableId])
+}
+
+enum NominationType {
+  HONSHIMEI // 本指名
+  JONAI // 場内指名
+  DOHAN // 同伴指名
+}
+
+model Nomination {
+  id        String         @id @default(cuid())
+  visitId   String
+  visit     Visit          @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  castId    String
+  cast      Cast           @relation(fields: [castId], references: [id], onDelete: Restrict)
+  type      NominationType
+  createdAt DateTime       @default(now())
+
+  @@index([visitId])
+  @@index([castId])
+}
+
+model OrderItem {
+  id           String   @id @default(cuid())
+  visitId      String
+  visit        Visit    @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  menuItemId   String
+  menuItem     MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+  quantity     Int      @default(1)
+  unitPrice    Int // 発注時点の単価スナップショット
+  castId       String? // 担当キャスト(バック計算用)
+  cast         Cast?    @relation(fields: [castId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+
+  bottleSplits BottleSplit[]
+
+  @@index([visitId])
+  @@index([menuItemId])
+}
+
+// ボトル折半: 1つの注文をキャスト間でバック按分する
+model BottleSplit {
+  id          String    @id @default(cuid())
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  castId      String
+  cast        Cast      @relation(fields: [castId], references: [id], onDelete: Cascade)
+  backAmount  Int // このキャストへの按分バック額
+  createdAt   DateTime  @default(now())
+
+  @@unique([orderItemId, castId])
+  @@index([orderItemId])
+}
+
+model ExtensionLog {
+  id            String   @id @default(cuid())
+  visitId       String
+  visit         Visit    @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  minutes       Int // 延長分数
+  amount        Int // 延長料金
+  isAutoExtend  Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([visitId])
+}
+
+// ---------------------------------------------------------------------------
+// 日報・レジ金(入出金)
+// ---------------------------------------------------------------------------
+
+model DailyReport {
+  id            String   @id @default(cuid())
+  storeId       String
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  reportDate    DateTime @db.Date
+  submittedById String
+  submittedBy   User     @relation(fields: [submittedById], references: [id], onDelete: Restrict)
+  salesTotal    Int      @default(0)
+  cashTotal     Int      @default(0)
+  cardTotal     Int      @default(0)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([storeId, reportDate])
+  @@index([storeId, reportDate])
+}
+
+enum CashEntryType {
+  CASH_IN // 入金
+  CASH_OUT // 出金
+}
+
+model CashRegisterLog {
+  id           String        @id @default(cuid())
+  storeId      String
+  store        Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  entryDate    DateTime      @db.Date
+  type         CashEntryType
+  amount       Int
+  reason       String
+  recordedById String
+  recordedBy   User          @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+  createdAt    DateTime      @default(now())
+
+  @@index([storeId, entryDate])
+}
