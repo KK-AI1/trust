@@ -20,6 +20,10 @@ export default async function VisitPage({
         orderBy: { createdAt: "asc" },
       },
       extensionLogs: { orderBy: { createdAt: "asc" } },
+      nominations: {
+        include: { cast: true },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 
@@ -27,16 +31,26 @@ export default async function VisitPage({
     notFound();
   }
 
-  const categories = await prisma.menuCategory.findMany({
-    where: { storeId },
-    orderBy: { sortOrder: "asc" },
-    include: {
-      menuItems: {
-        where: { isAvailable: true },
-        orderBy: { sortOrder: "asc" },
+  const [categories, workingCasts] = await Promise.all([
+    prisma.menuCategory.findMany({
+      where: { storeId },
+      orderBy: { sortOrder: "asc" },
+      include: {
+        menuItems: {
+          where: { isAvailable: true },
+          orderBy: { sortOrder: "asc" },
+        },
       },
-    },
-  });
+    }),
+    prisma.cast.findMany({
+      where: {
+        storeId,
+        isActive: true,
+        timeCards: { some: { clockOutAt: null } },
+      },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   const itemsTotal = visit.orderItems.reduce(
     (sum, item) => sum + item.unitPrice * item.quantity,
@@ -75,6 +89,12 @@ export default async function VisitPage({
         unitPrice: item.unitPrice,
         quantity: item.quantity,
       }))}
+      nominations={visit.nominations.map((n) => ({
+        id: n.id,
+        castName: n.cast.name,
+        type: n.type,
+      }))}
+      workingCasts={workingCasts.map((c) => ({ id: c.id, name: c.name }))}
       total={itemsTotal + extensionTotal}
     />
   );

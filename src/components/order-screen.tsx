@@ -4,8 +4,15 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { addOrderItem, decrementOrderItem } from "@/lib/actions/orders";
 import { addExtension, closeVisit } from "@/lib/actions/visits";
+import { addNomination, removeNomination } from "@/lib/actions/nominations";
 
 const EXTENSION_AMOUNT = 3000;
+
+const NOMINATION_LABEL: Record<string, string> = {
+  HONSHIMEI: "本指名",
+  JONAI: "場内指名",
+  DOHAN: "同伴指名",
+};
 
 type MenuItemData = { id: string; name: string; price: number };
 type CategoryData = { id: string; name: string; items: MenuItemData[] };
@@ -15,11 +22,15 @@ type OrderItemData = {
   unitPrice: number;
   quantity: number;
 };
+type NominationData = { id: string; castName: string; type: string };
+type CastOption = { id: string; name: string };
 
 export function OrderScreen({
   visit,
   categories,
   orderItems,
+  nominations,
+  workingCasts,
   total,
 }: {
   visit: {
@@ -32,11 +43,19 @@ export function OrderScreen({
   };
   categories: CategoryData[];
   orderItems: OrderItemData[];
+  nominations: NominationData[];
+  workingCasts: CastOption[];
   total: number;
 }) {
   const [activeCategoryId, setActiveCategoryId] = useState(
     categories[0]?.id ?? "",
   );
+  const [selectedCastId, setSelectedCastId] = useState(
+    workingCasts[0]?.id ?? "",
+  );
+  const [selectedType, setSelectedType] = useState<
+    "HONSHIMEI" | "JONAI" | "DOHAN"
+  >("HONSHIMEI");
   const [isPending, startTransition] = useTransition();
 
   const activeCategory = categories.find((c) => c.id === activeCategoryId);
@@ -118,6 +137,82 @@ export function OrderScreen({
           </div>
         </div>
 
+        <div className="space-y-4">
+        <div className="rounded-md border border-neutral-800 bg-neutral-900 p-3">
+          <h2 className="mb-2 text-sm font-semibold text-neutral-300">指名</h2>
+
+          <ul className="mb-3 space-y-1">
+            {nominations.length === 0 && (
+              <li className="text-sm text-neutral-500">指名なし</li>
+            )}
+            {nominations.map((n) => (
+              <li
+                key={n.id}
+                className="flex items-center justify-between text-sm"
+              >
+                <span className="text-neutral-200">
+                  {NOMINATION_LABEL[n.type]}: {n.castName}
+                </span>
+                <button
+                  disabled={isPending}
+                  onClick={() =>
+                    startTransition(() => {
+                      removeNomination(n.id);
+                    })
+                  }
+                  className="rounded bg-neutral-800 px-2 py-0.5 text-xs text-neutral-300 hover:bg-neutral-700 disabled:opacity-60"
+                >
+                  −
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          {workingCasts.length === 0 ? (
+            <p className="text-xs text-neutral-500">
+              本日出勤中のキャストがいません
+            </p>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={selectedType}
+                onChange={(e) =>
+                  setSelectedType(
+                    e.target.value as "HONSHIMEI" | "JONAI" | "DOHAN",
+                  )
+                }
+                className="rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs text-neutral-100"
+              >
+                <option value="HONSHIMEI">本指名</option>
+                <option value="JONAI">場内指名</option>
+                <option value="DOHAN">同伴指名</option>
+              </select>
+              <select
+                value={selectedCastId}
+                onChange={(e) => setSelectedCastId(e.target.value)}
+                className="rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs text-neutral-100"
+              >
+                {workingCasts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                disabled={isPending || !selectedCastId}
+                onClick={() =>
+                  startTransition(() => {
+                    addNomination(visit.id, selectedCastId, selectedType);
+                  })
+                }
+                className="rounded bg-amber-500 px-2 py-1 text-xs font-medium text-neutral-950 hover:bg-amber-400 disabled:opacity-60"
+              >
+                追加
+              </button>
+            </div>
+          )}
+        </div>
+
         <div className="rounded-md border border-neutral-800 bg-neutral-900 p-3">
           <h2 className="mb-2 text-sm font-semibold text-neutral-300">
             注文内容
@@ -166,6 +261,7 @@ export function OrderScreen({
           >
             会計
           </button>
+        </div>
         </div>
       </div>
     </div>
