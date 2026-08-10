@@ -59,8 +59,45 @@ export async function computeStorePayroll(
     },
   });
 
-  return casts.map((cast) => {
-    const closedCards = cast.timeCards.filter((tc) => tc.clockOutAt);
+  return casts.map(mapCastToPayroll);
+}
+
+export async function computeCastPayroll(
+  castId: string,
+  storeId: string,
+  start: Date,
+  end: Date,
+): Promise<CastPayroll | null> {
+  const cast = await prisma.cast.findFirst({
+    where: { id: castId, storeId },
+    include: {
+      timeCards: {
+        where: { workDate: { gte: start, lt: end } },
+      },
+      nominations: {
+        where: { createdAt: { gte: start, lt: end } },
+      },
+      bottleSplits: {
+        where: { createdAt: { gte: start, lt: end } },
+      },
+    },
+  });
+
+  return cast ? mapCastToPayroll(cast) : null;
+}
+
+type CastWithPeriodData = NonNullable<
+  Awaited<ReturnType<typeof prisma.cast.findFirst<{
+    include: {
+      timeCards: true;
+      nominations: true;
+      bottleSplits: true;
+    };
+  }>>>
+>;
+
+function mapCastToPayroll(cast: CastWithPeriodData): CastPayroll {
+  const closedCards = cast.timeCards.filter((tc) => tc.clockOutAt);
     const workedHours = closedCards.reduce((sum, tc) => {
       const ms = tc.clockOutAt!.getTime() - tc.clockInAt.getTime();
       return sum + ms / 3_600_000;
@@ -118,7 +155,6 @@ export async function computeStorePayroll(
       bottleBackTotal,
       grossBeforeWelfare,
       welfareDeduction,
-      netPay,
-    };
-  });
+    netPay,
+  };
 }
