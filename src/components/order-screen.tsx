@@ -2,9 +2,10 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { addOrderItem, decrementOrderItem } from "@/lib/actions/orders";
+import { addOrderItem } from "@/lib/actions/orders";
 import { addExtension, closeVisit } from "@/lib/actions/visits";
 import { addNomination, removeNomination } from "@/lib/actions/nominations";
+import { OrderLineRow } from "@/components/order-line-row";
 
 const EXTENSION_AMOUNT = 3000;
 
@@ -21,6 +22,9 @@ type OrderItemData = {
   name: string;
   unitPrice: number;
   quantity: number;
+  isBottle: boolean;
+  backAmount: number;
+  bottleSplits: { castId: string; castName: string; backAmount: number }[];
 };
 type NominationData = { id: string; castName: string; type: string };
 type CastOption = { id: string; name: string };
@@ -222,30 +226,13 @@ export function OrderScreen({
               <li className="text-sm text-neutral-500">まだ注文がありません</li>
             )}
             {orderItems.map((item) => (
-              <li
+              <OrderLineRow
                 key={item.id}
-                className="flex items-center justify-between text-sm"
-              >
-                <span className="text-neutral-200">
-                  {item.name} × {item.quantity}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-neutral-400">
-                    ¥{(item.unitPrice * item.quantity).toLocaleString()}
-                  </span>
-                  <button
-                    disabled={isPending}
-                    onClick={() =>
-                      startTransition(() => {
-                        decrementOrderItem(item.id);
-                      })
-                    }
-                    className="rounded bg-neutral-800 px-2 py-0.5 text-xs text-neutral-300 hover:bg-neutral-700 disabled:opacity-60"
-                  >
-                    −
-                  </button>
-                </div>
-              </li>
+                item={item}
+                workingCasts={workingCasts}
+                isPending={isPending}
+                startTransition={startTransition}
+              />
             ))}
           </ul>
 

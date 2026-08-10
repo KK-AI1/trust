@@ -16,7 +16,10 @@ export default async function VisitPage({
     include: {
       table: true,
       orderItems: {
-        include: { menuItem: true },
+        include: {
+          menuItem: true,
+          bottleSplits: { include: { cast: true } },
+        },
         orderBy: { createdAt: "asc" },
       },
       extensionLogs: { orderBy: { createdAt: "asc" } },
@@ -88,6 +91,13 @@ export default async function VisitPage({
         name: item.menuItem.name,
         unitPrice: item.unitPrice,
         quantity: item.quantity,
+        isBottle: item.menuItem.isBottle,
+        backAmount: item.menuItem.backAmount * item.quantity,
+        bottleSplits: item.bottleSplits.map((s) => ({
+          castId: s.castId,
+          castName: s.cast.name,
+          backAmount: s.backAmount,
+        })),
       }))}
       nominations={visit.nominations.map((n) => ({
         id: n.id,
