@@ -20,7 +20,7 @@ export default async function DashboardLayout({
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="flex flex-wrap items-center gap-4">
             <span className="text-lg font-semibold text-amber-400">
-              TRUST
+              ゆず
             </span>
             <DashboardNav />
           </div>

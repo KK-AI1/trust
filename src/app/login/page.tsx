@@ -46,7 +46,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-neutral-950 px-4">
       <div className="w-full max-w-sm rounded-lg border border-neutral-800 bg-neutral-900 p-8 shadow-xl">
         <h1 className="mb-1 text-xl font-semibold text-neutral-100">
-          TRUST 店舗管理システム
+          ゆず 店舗管理システム
         </h1>
         <p className="mb-6 text-sm text-neutral-400">ログインしてください</p>
 
