@@ -9,10 +9,10 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   const store = await prisma.store.upsert({
     where: { id: "seed-store" },
-    update: {},
+    update: { name: "ゆず" },
     create: {
       id: "seed-store",
-      name: "club TRUST",
+      name: "ゆず",
     },
   });
 
