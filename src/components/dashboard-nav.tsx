@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { href: "/", label: "ホール状況" },
+  { href: "/menu", label: "メニュー" },
   { href: "/casts", label: "キャスト" },
   { href: "/attendance", label: "勤怠" },
   { href: "/payroll", label: "給与" },
