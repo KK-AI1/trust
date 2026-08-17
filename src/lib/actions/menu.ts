@@ -17,6 +17,19 @@ export async function createMenuCategory(name: string) {
   revalidatePath("/menu");
 }
 
+export async function updateMenuCategory(categoryId: string, name: string) {
+  const storeId = await requireStoreId();
+  if (!name.trim()) throw new Error("カテゴリー名を入力してください");
+
+  await prisma.menuCategory.updateMany({
+    where: { id: categoryId, storeId },
+    data: { name: name.trim() },
+  });
+
+  revalidatePath("/menu");
+  revalidatePath("/visits", "layout");
+}
+
 export async function createMenuItem(input: {
   categoryId: string;
   name: string;

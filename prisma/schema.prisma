@@ -185,6 +185,7 @@ model Visit {
   store        Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
   tableId      String
   table        TableSeat   @relation(fields: [tableId], references: [id], onDelete: Restrict)
+  customerName String? // お客様名
   guestCount   Int         @default(1)
   status       VisitStatus @default(OPEN)
   checkInAt    DateTime    @default(now())

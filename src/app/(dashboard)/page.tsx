@@ -31,6 +31,7 @@ export default async function DashboardHomePage() {
       capacity: table.capacity,
       status: table.status,
       visitId: visit?.id ?? null,
+      customerName: visit?.customerName ?? null,
       guestCount: visit?.guestCount ?? null,
       checkInAt: visit?.checkInAt.toISOString() ?? null,
       amount,

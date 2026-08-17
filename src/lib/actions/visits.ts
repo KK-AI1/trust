@@ -7,7 +7,11 @@ import { requireStoreId } from "@/lib/current-store";
 
 const EXTENSION_UNIT_MINUTES = 30;
 
-export async function createVisit(tableId: string, guestCount: number) {
+export async function createVisit(
+  tableId: string,
+  guestCount: number,
+  customerName?: string,
+) {
   const storeId = await requireStoreId();
 
   const table = await prisma.tableSeat.findFirstOrThrow({
@@ -24,6 +28,7 @@ export async function createVisit(tableId: string, guestCount: number) {
         storeId,
         tableId,
         guestCount: Math.max(1, guestCount),
+        customerName: customerName?.trim() || null,
       },
     });
     await tx.tableSeat.update({

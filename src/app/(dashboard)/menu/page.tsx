@@ -3,6 +3,7 @@ import { requireStoreId } from "@/lib/current-store";
 import { AddCategoryForm } from "@/components/add-category-form";
 import { AddMenuItemForm } from "@/components/add-menu-item-form";
 import { MenuItemRow } from "@/components/menu-item-row";
+import { CategoryNameEditor } from "@/components/category-name-editor";
 
 export default async function MenuPage() {
   const storeId = await requireStoreId();
@@ -28,9 +29,7 @@ export default async function MenuPage() {
             key={category.id}
             className="rounded-md border border-neutral-800 bg-neutral-900 p-3"
           >
-            <h2 className="mb-2 text-sm font-semibold text-neutral-300">
-              {category.name}
-            </h2>
+            <CategoryNameEditor categoryId={category.id} name={category.name} />
             <ul className="space-y-1">
               {category.menuItems.map((item) => (
                 <MenuItemRow key={item.id} item={item} />

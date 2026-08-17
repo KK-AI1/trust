@@ -40,6 +40,7 @@ export function OrderScreen({
   visit: {
     id: string;
     tableName: string;
+    customerName: string | null;
     guestCount: number;
     checkInAt: string;
     status: string;
@@ -72,7 +73,8 @@ export function OrderScreen({
             ← ホール状況に戻る
           </Link>
           <h1 className="text-2xl font-semibold text-neutral-100">
-            {visit.tableName}({visit.guestCount}名)
+            {visit.tableName}
+            {visit.customerName ? ` - ${visit.customerName}様` : ""}({visit.guestCount}名)
           </h1>
         </div>
         <div className="text-right">

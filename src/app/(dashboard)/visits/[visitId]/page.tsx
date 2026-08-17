@@ -69,6 +69,7 @@ export default async function VisitPage({
       visit={{
         id: visit.id,
         tableName: visit.table.name,
+        customerName: visit.customerName,
         guestCount: visit.guestCount,
         checkInAt: visit.checkInAt.toISOString(),
         status: visit.status,

@@ -10,6 +10,7 @@ type TableCardData = {
   capacity: number;
   status: "VACANT" | "OCCUPIED";
   visitId: string | null;
+  customerName: string | null;
   guestCount: number | null;
   checkInAt: string | null;
   amount: number;
@@ -19,6 +20,7 @@ export function TableGrid({ tables }: { tables: TableCardData[] }) {
   const router = useRouter();
   const [startingTableId, setStartingTableId] = useState<string | null>(null);
   const [guestCount, setGuestCount] = useState(2);
+  const [customerName, setCustomerName] = useState("");
   const [isPending, startTransition] = useTransition();
   const [now, setNow] = useState<number | null>(null);
 
@@ -56,6 +58,7 @@ export function TableGrid({ tables }: { tables: TableCardData[] }) {
             >
               <span className="text-sm font-semibold text-amber-300">
                 {table.name}
+                {table.customerName ? ` - ${table.customerName}様` : ""}
               </span>
               <span className="text-xs text-neutral-400">
                 {table.guestCount}名 / {minutes}分経過
@@ -80,30 +83,43 @@ export function TableGrid({ tables }: { tables: TableCardData[] }) {
             <span className="text-xs text-neutral-500">空席</span>
 
             {isStarting ? (
-              <div className="mt-2 flex w-full items-center gap-2">
+              <div className="mt-2 flex w-full flex-col gap-2">
                 <input
-                  type="number"
-                  min={1}
-                  value={guestCount}
-                  onChange={(e) => setGuestCount(Number(e.target.value))}
-                  className="w-14 rounded border border-neutral-700 bg-neutral-800 px-1 py-0.5 text-sm text-neutral-100"
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="お客様名(任意)"
+                  className="w-full rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-sm text-neutral-100"
                 />
-                <span className="text-xs text-neutral-400">名</span>
-                <button
-                  disabled={isPending}
-                  onClick={() =>
-                    startTransition(() => {
-                      createVisit(table.id, guestCount);
-                    })
-                  }
-                  className="ml-auto rounded bg-amber-500 px-2 py-1 text-xs font-medium text-neutral-950 hover:bg-amber-400 disabled:opacity-60"
-                >
-                  開始
-                </button>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    value={guestCount}
+                    onChange={(e) => setGuestCount(Number(e.target.value))}
+                    className="w-14 rounded border border-neutral-700 bg-neutral-800 px-1 py-0.5 text-sm text-neutral-100"
+                  />
+                  <span className="text-xs text-neutral-400">名</span>
+                  <button
+                    disabled={isPending}
+                    onClick={() =>
+                      startTransition(() => {
+                        createVisit(table.id, guestCount, customerName);
+                      })
+                    }
+                    className="ml-auto rounded bg-amber-500 px-2 py-1 text-xs font-medium text-neutral-950 hover:bg-amber-400 disabled:opacity-60"
+                  >
+                    開始
+                  </button>
+                </div>
               </div>
             ) : (
               <button
-                onClick={() => setStartingTableId(table.id)}
+                onClick={() => {
+                  setStartingTableId(table.id);
+                  setCustomerName("");
+                  setGuestCount(2);
+                }}
                 className="mt-2 w-full rounded bg-neutral-800 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-700"
               >
                 入店
